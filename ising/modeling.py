@@ -23,4 +23,4 @@ class IsingEnergyModel(torch.nn.Module):
     def get_reward(self, states):
         energies = self(states)
         reward = torch.exp(-1 * energies).sum()
-        return 10 * torch.log(reward)
+        return reward
