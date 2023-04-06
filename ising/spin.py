@@ -72,15 +72,19 @@ class SpinConfiguration:
 
 
 def create_adjacency_matrix(N):
-    offdi_list = [0, 1]
-    for _ in range(N - 3):
-        offdi_list.append(0)
-    offdi_list.append(1)
+    N = int(N)
+    if N >=3:
+        offdi_list = [0, 1]
+        for _ in range(N - 3):
+            offdi_list.append(0)
+        offdi_list.append(1)
 
-    offdi_mat = scipy.linalg.circulant(offdi_list)
-    I = np.eye(N)
+        offdi_mat = scipy.linalg.circulant(offdi_list)
+        I = np.eye(N)
 
-    A = np.kron(offdi_mat, I) + np.kron(I, offdi_mat)
+        A = np.kron(offdi_mat, I) + np.kron(I, offdi_mat)
+    else:
+        raise RuntimeError("N should be 3 or greater.")
     return A
 
 
@@ -88,3 +92,11 @@ def create_J_matrix(N, sigma=1):
     A = create_adjacency_matrix(N)
     J = sigma * A
     return torch.tensor(J, dtype=torch.float32)
+
+def state_to_spin(state):
+    N = int(np.sqrt(state.shape[0]/2))
+    values = torch.zeros(N**2, dtype=torch.float32)
+    values[torch.where(state[:N**2]==1)] = 1
+    values[torch.where(state[N**2:]==1)] = -1
+    spin = SpinConfiguration(N, values.reshape(N, N))
+    return spin
