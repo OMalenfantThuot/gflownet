@@ -1,0 +1,1 @@
+from spingflow.modeling.base import BaseFlowModel

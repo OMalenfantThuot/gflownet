@@ -69,6 +69,12 @@ class SpinConfiguration:
     def get_magnetization(self):
         mag = torch.mean(self.values)
         return mag
+    
+    def to_state(self):
+        state = torch.zeros((2*(self.N**2)))
+        state[:self.N**2][torch.where(self.values.flatten()==1)] = 1
+        state[self.N**2:][torch.where(self.values.flatten()==-1)] = 1
+        return state
 
 
 def create_adjacency_matrix(N):
