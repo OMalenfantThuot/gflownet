@@ -99,6 +99,7 @@ def create_J_matrix(N, sigma=1):
     J = sigma * A
     return torch.tensor(J, dtype=torch.float32)
 
+
 def state_to_spin(state):
     N = int(np.sqrt(state.shape[0]/2))
     values = torch.zeros(N**2, dtype=torch.float32)

@@ -1,1 +1,1 @@
-from spingflow.modeling.base import BaseFlowModel
+from spingflow.modeling.base import BaseFlowModel, IsingFullGFlowModel

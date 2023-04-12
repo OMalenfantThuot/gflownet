@@ -35,13 +35,16 @@ class BaseFlowModel(torch.nn.Module):
         return new_state
 
 class IsingFullGFlowModel(torch.nn.Module):
-    def __init__(self, N:int, flow_model:BaseFlowModel, reward_model:IsingEnergyModel):
+    def __init__(self, flow_model:BaseFlowModel, reward_model:IsingEnergyModel):
         super().__init__()
-        self.N = int(N)
         self.flow_model = flow_model
         self.reward_model = reward_model
-        assert self.N == self.flow_model.N
-        assert self.N == self.reward_model.N
+        assert self.reward_model.N == self.flow_model.N, "The reward and flow models are not of matching dimensions."
+        
+    @property
+    def N(self):
+        return self.flow_model.N
+
         
     def forward(self, initial_state:torch.Tensor):
         final_state = self.flow_model(initial_state)
