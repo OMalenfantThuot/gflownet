@@ -4,10 +4,10 @@ from spingflow.modeling.energy import IsingEnergyModel
 
 
 class BaseFlowModel(torch.nn.Module):
-    def __init__(self, N:int, internal_network:torch.nn.Module):
+    def __init__(self, N:int, internal_net:torch.nn.Module):
         super().__init__()
         self.N = int(N)
-        self.internal_network = internal_network
+        self.internal_net = internal_net
         self.logZ = torch.nn.Parameter(torch.ones(1) * self.N)
         
     def forward(self, state):
@@ -23,10 +23,10 @@ class BaseFlowModel(torch.nn.Module):
         
     def get_logits(self, state):
         unavailable_actions = torch.cat([state[:,:self.N**2] + state[:,self.N**2:]]*2, dim=-1)
-        logits = self.internal_network(state)
+        logits = self.internal_net(state)
         PF = logits[..., :2*self.N**2] * (1 - unavailable_actions) + unavailable_actions * -100
-        PB = logits[..., 2*self.N**2:] * state + (1 - state) * -100 # Pas sur si je devrais utiliser le masque ici?
-        return PF, PB
+        PB = logits[..., 2*self.N**2:] * state + (1 - state) * -100
+        return PF, PB, unavailable_actions
         
     def create_new_state_from_choice(self, state, choice):
         base = torch.zeros_like(state)
@@ -45,8 +45,12 @@ class IsingFullGFlowModel(torch.nn.Module):
     def N(self):
         return self.flow_model.N
 
-        
     def forward(self, initial_state:torch.Tensor):
         final_state = self.flow_model(initial_state)
         reward = self.reward_model(final_state)
         return final_state, reward
+    
+    def create_input_batch(self, batch_size):
+        return torch.zeros(
+            (batch_size, 2 * (self.flow_model.N**2)), dtype=torch.float32, requires_grad=True
+        )

@@ -10,7 +10,7 @@ class SimpleIsingFlowModel(BaseFlowModel):
         )
         if n_layers > 2:
             for _ in range(n_layers - 2):
-                internal_net.append(torch.Linear(n_hidden, n_hidden))
+                internal_net.append(torch.nn.Linear(n_hidden, n_hidden))
                 internal_net.append(torch.nn.LeakyReLU())
         internal_net.append(torch.nn.Linear(n_hidden, 2 * 2 * N**2))
         super().__init__(N=N, internal_net=internal_net)

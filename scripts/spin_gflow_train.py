@@ -13,14 +13,15 @@ def main(args):
 
     model = setup_model_from_args(args)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr) # Different lr for Z?
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, factor=args.factor, patience=args.patience
     )
 
-    trainer = SpinGflowTrainer(
+    trainer = SpinGFlowTrainer(
         model=model,
         temperature=args.temperature,
+        epsilon=args.epsilon,
         max_traj=args.max_traj,
         batch_size=args.batch_size,
         val_interval=args.val_interval,
@@ -30,8 +31,9 @@ def main(args):
         device=device,
     )
 
-    trainer.train()
+    best_loss = trainer.train(return_best_loss=True)
     print("Training complete!")
+    print(f"Best loss: {best_loss:.3f}")
 
 
 if __name__ == "__main__":
