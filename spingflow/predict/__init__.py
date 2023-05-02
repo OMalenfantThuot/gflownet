@@ -1,0 +1,1 @@
+from spingflow.predict.predictor import SpinGFlowPredictor

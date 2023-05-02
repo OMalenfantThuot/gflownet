@@ -100,3 +100,10 @@ def state_to_spin(state):
     values[torch.where(state[N**2:]==1)] = -1
     spin = SpinConfiguration(N, values.reshape(N, N))
     return spin
+
+def spin_to_state(spin):
+    N = spin.values.shape[0]
+    state = torch.zeros((2*(N**2)))
+    state[:N**2][torch.where(spin.values.flatten()==1)] = 1
+    state[N**2:][torch.where(spin.values.flatten()==-1)] = 1
+    return state
