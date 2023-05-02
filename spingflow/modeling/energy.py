@@ -39,5 +39,10 @@ class IsingEnergyModel(torch.nn.Module):
         reward = torch.exp(-1 * energies / T)
         return reward
 
+    def get_logreward(self, states, T):
+        energies = self(states)
+        logreward = (-1 * energies / T).clip(-20)
+        return logreward
+
     def get_energy(self, states):
         return self(states)

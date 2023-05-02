@@ -69,17 +69,17 @@ class SpinConfiguration:
     def get_magnetization(self):
         mag = torch.mean(self.values)
         return mag
-    
+
     def to_state(self):
-        state = torch.zeros((2*(self.N**2)))
-        state[:self.N**2][torch.where(self.values.flatten()==1)] = 1
-        state[self.N**2:][torch.where(self.values.flatten()==-1)] = 1
+        state = torch.zeros((2 * (self.N**2)))
+        state[: self.N**2][torch.where(self.values.flatten() == 1)] = 1
+        state[self.N**2 :][torch.where(self.values.flatten() == -1)] = 1
         return state
 
 
 def create_adjacency_matrix(N):
     N = int(N)
-    if N >=3:
+    if N >= 3:
         offdi_list = [0, 1]
         for _ in range(N - 3):
             offdi_list.append(0)
@@ -101,9 +101,35 @@ def create_J_matrix(N, sigma=1):
 
 
 def state_to_spin(state):
-    N = int(np.sqrt(state.shape[0]/2))
+    N = int(np.sqrt(state.shape[0] / 2))
     values = torch.zeros(N**2, dtype=torch.float32)
-    values[torch.where(state[:N**2]==1)] = 1
-    values[torch.where(state[N**2:]==1)] = -1
+    values[torch.where(state[: N**2] == 1)] = 1
+    values[torch.where(state[N**2 :] == 1)] = -1
     spin = SpinConfiguration(N, values.reshape(N, N))
     return spin
+
+
+class StatesIterator:
+    def __init__(self, N):
+        self.N = int(N)
+
+    def __iter__(self):
+        self.base_values = np.array([-1] * self.N**2, dtype=int)
+        self.counter = 0
+        self.n_states = 2 ** (self.N**2)
+        return self
+
+    def __next__(self):
+        if self.counter < self.n_states:
+            new_spins = (
+                2 * np.array([int(char) for char in np.binary_repr(self.counter)]) - 1
+            )
+            spin_values = self.base_values.copy()
+            spin_values[-new_spins.shape[0] :] = new_spins
+            spin_values = spin_values.reshape(self.N, self.N)
+            self.counter += 1
+
+            spin = SpinConfiguration(N=self.N, values=spin_values)
+            return spin
+        else:
+            raise StopIteration

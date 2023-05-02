@@ -9,7 +9,6 @@ class SpinGFlowTrainer:
         self,
         model: IsingFullGFlowModel,
         temperature: float,
-        epsilon:float,
         max_traj: int,
         batch_size: int,
         val_interval: int,
@@ -20,7 +19,6 @@ class SpinGFlowTrainer:
     ):
         self.model = model
         self.temperature = temperature
-        self.epsilon = epsilon
         self.max_traj = max_traj
         self.batch_size = batch_size
         self.val_interval = val_interval
@@ -39,11 +37,15 @@ class SpinGFlowTrainer:
                 _, val_loss = self.validation_step()
                 val_losses.append(val_loss)
                 print("--n_traj: ", n_traj)
-                print(f"---- Val loss: {val_loss:.3f} --- Model logZ: {self.model.flow_model.logZ.item():.3f}")
+                print(
+                    f"---- Val loss: {val_loss:.3f} --- Model logZ: {self.model.flow_model.logZ.item():.3f}"
+                )
                 lr = self.optimizer.param_groups[0]["lr"]
                 print(f"---- Learning rate: {lr}")
 
-                best_loss, val_counter = self.checkpoint(val_loss, best_loss, val_counter)
+                best_loss, val_counter = self.checkpoint(
+                    val_loss, best_loss, val_counter
+                )
                 self.scheduler.step(val_loss)
 
             _, loss = self.training_step()
@@ -88,17 +90,17 @@ class SpinGFlowTrainer:
             traj_PF += categorical.log_prob(choice)
 
             if step == self.model.N**2:
-                reward = self.model.reward_model.get_reward(new_state, self.temperature)
+                logreward = self.model.reward_model.get_logreward(
+                    new_state, self.temperature
+                )
 
             PF, PB, _ = self.model.flow_model.get_logits(new_state)
             traj_PB += Categorical(logits=PB).log_prob(choice)
 
             state = new_state
 
-        # ajouter epsilon?
-        loss = (
-            self.model.flow_model.logZ + traj_PF - traj_PB - torch.log(reward).clip(-20)
-        ) ** 2
+        # Loss function
+        loss = (self.model.flow_model.logZ + traj_PF - traj_PB - logreward) ** 2
 
         return state, loss.mean()
 
