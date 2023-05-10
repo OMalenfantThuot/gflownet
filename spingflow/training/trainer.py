@@ -28,6 +28,8 @@ class SpinGFlowTrainer:
         self.device = device
 
     def train(self, return_best_loss=False):
+        self.model.to(self.device)
+
         n_traj, n_batches, val_counter = 0, 0, 0
         train_losses, val_losses = [], []
         best_loss = np.inf
@@ -56,7 +58,6 @@ class SpinGFlowTrainer:
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
-        # Stop if scheduler hits minimum learning rate?
 
         if return_best_loss:
             return best_loss

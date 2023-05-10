@@ -15,7 +15,10 @@ def main(args):
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)  # Different lr for Z?
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, factor=args.factor, patience=args.patience
+        optimizer,
+        factor=args.factor,
+        patience=args.patience,
+        min_lr=3 * 10 ** (-6),
     )
 
     trainer = SpinGFlowTrainer(
