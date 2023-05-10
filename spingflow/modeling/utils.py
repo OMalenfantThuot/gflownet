@@ -15,6 +15,16 @@ def setup_flow_model_from_args(args):
         return SimpleIsingFlowModel(
             N=args.N, n_layers=args.n_layers, n_hidden=args.n_hidden
         )
+    elif args.model_type == "conv":
+        from spingflow.modeling.flow_models import ConvIsingFlowModel
+
+        conv_n_layers = args.conv_n_layers if args.conv_n_layers else args.n_layers
+        return ConvIsingFlowModel(
+            N=args.N,
+            conv_n_layers=conv_n_layers,
+            mlp_n_layers=args.n_layers,
+            mlp_n_hidden=args.n_hidden,
+        )
     else:
         raise NotImplementedError(f"Model type {model_type} is not implemented.")
 
@@ -25,14 +35,19 @@ def setup_reward_model_from_args(args):
 
 def add_modeling_arguments_to_parser(parser):
     parser.add_argument("--N", type=int, help="Size (side) of the spin grid")
-    parser.add_argument("--J", type=float, help="Ising interaction parameter.")
     parser.add_argument(
-        "--model_type", choices=["simple"], help="Name of the model type to use"
+        "--J", type=float, default=1, help="Ising interaction parameter."
+    )
+    parser.add_argument(
+        "--model_type", choices=["simple", "conv"], help="Name of the model type to use"
     )
     parser.add_argument(
         "--n_layers", type=int, default=2, help="Number of layers in the model"
     )
     parser.add_argument(
         "--n_hidden", type=int, default=256, help="Number of hidden neurons"
+    )
+    parser.add_argument(
+        "--conv_n_layers", type=int, default=2, help="Number of convolutional layers"
     )
     return parser
