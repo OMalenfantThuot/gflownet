@@ -24,6 +24,8 @@ def setup_flow_model_from_args(args):
             conv_n_layers=conv_n_layers,
             mlp_n_layers=args.n_layers,
             mlp_n_hidden=args.n_hidden,
+            conv_batch_norm=args.conv_norm,
+            mlp_batch_norm=args.mlp_norm,
         )
     else:
         raise NotImplementedError(f"Model type {model_type} is not implemented.")
@@ -49,5 +51,11 @@ def add_modeling_arguments_to_parser(parser):
     )
     parser.add_argument(
         "--conv_n_layers", type=int, default=2, help="Number of convolutional layers"
+    )
+    parser.add_argument(
+        "--conv_norm", action="store_true", help="Whether to use batch norm in the convolutional layers"
+    )
+    parser.add_argument(
+        "--mlp_norm", action="store_true", help="Whether to use batch norm in the mlp layers"
     )
     return parser

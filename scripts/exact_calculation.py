@@ -15,7 +15,7 @@ def create_parser():
     )
     parser.add_argument(
         "--property",
-        choices=["magn"],
+        choices=["magn", "Z", "logZ"],
         help="Property to predict over the sampled structures",
     )
     return parser
@@ -26,20 +26,28 @@ def main(args):
         print("N is high, this will be very long.")
     states_iterator = StatesIterator(N=args.N)
     J = create_J_matrix(args.N, sigma=args.J)
-    Z, property = 0, 0
+    Z, property = np.longdouble(0), np.longdouble(0)
 
     for state in states_iterator:
         energy = state.get_energy(J)
-        relative_prob = torch.exp(-1 * energy / args.temperature).item()
+        log_relative_prob = np.longdouble((-1 * energy / args.temperature).item())
+        relative_prob = np.exp(log_relative_prob)
         Z += relative_prob
 
         if args.property == "magn":
             mag = state.get_magnetization().abs().item()
             property += mag * relative_prob
+        elif args.property in ["Z", "logZ"]:
+            pass
         else:
             raise NotImplementedError()
-    property = property / Z
-    print(property)
+    if args.property not in ["Z", "logZ"]:
+        property = property / Z
+        print(property)
+    elif args.property == "logZ":
+        print(np.log(Z))
+    elif args.property == "Z":
+        print(Z)
 
 
 if __name__ == "__main__":

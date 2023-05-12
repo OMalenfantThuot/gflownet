@@ -4,9 +4,14 @@ from spingflow.modeling.utils import add_modeling_arguments_to_parser
 
 
 def create_train_parser():
-    parser = argparse.ArgumentParser(add_help=True)
+    # Initialize parser
+    parser = argparse.ArgumentParser(
+        add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    # Add modeling related arguments
     parser = add_modeling_arguments_to_parser(parser)
 
+    # Add training related arguments
     parser.add_argument(
         "--temperature",
         type=float,
@@ -19,6 +24,15 @@ def create_train_parser():
     )
     parser.add_argument("--val_batch_size", type=int, help="Validation batch size")
     parser.add_argument("--lr", type=float, help="Initial learning rate")
+    parser.add_argument(
+        "--logZ_lr_factor",
+        type=float,
+        default=100,
+        help="Multiplicative factor to get the ",
+    )
+    parser.add_argument(
+        "--weight_decay", type=float, default=0, help="Weight decay parameter"
+    )
     parser.add_argument("--patience", type=int, help="Scheduler patience")
     parser.add_argument("--factor", type=float, help="Scheduler reduction factor")
     parser.add_argument("--device", choices=["cpu", "cuda"], help="Training device")
