@@ -41,8 +41,7 @@ class SpinGFlowTrainer:
         # Set initial values
         n_traj, n_batches = 0, 0
         logZ_values = []
-        val_n_traj, train_n_traj = [], []
-        val_losses, train_losses = [], []
+        val_n_traj, val_losses = [], []
         val_counter, checkpoint_counter, plotting_counter = 0, 1, 0
         log_Z_converged = False
 
@@ -85,18 +84,12 @@ class SpinGFlowTrainer:
                 # Plotting if needed
                 plotting_counter += 1
                 if plotting_counter % self.plotting_interval == 0:
-                    self.plot_metrics(
-                        train_n_traj, train_losses, val_n_traj, val_losses, logZ_values
-                    )
+                    self.plot_metrics(val_n_traj, val_losses, logZ_values)
 
             # Training trajectories
             _, loss = self.training_step()
             n_traj += self.batch_size
             n_batches += 1
-
-            # Save values
-            train_losses.append(loss.item())
-            train_n_traj.append(n_traj)
 
             # Backprop
             loss.backward()
@@ -107,9 +100,7 @@ class SpinGFlowTrainer:
         _ = self.checkpoint(
             self.checkpoint_interval, checkpoint_counter + 1, final=True
         )
-        self.plot_metrics(
-            train_n_traj, train_losses, val_n_traj, val_losses, logZ_values
-        )
+        self.plot_metrics(val_n_traj, val_losses, logZ_values)
 
     def validation_step(self):
         # Batched trajectories without gradient accumulation
@@ -182,17 +173,13 @@ class SpinGFlowTrainer:
             val_counter += 1
         return val_counter, checkpoint_counter
 
-    def plot_metrics(
-        self, train_n_traj, train_losses, val_n_traj, val_losses, logZ_values
-    ):
+    def plot_metrics(self, val_n_traj, val_losses, logZ_values):
         # Metric plots to monitor progress during training
         # and assert results reliability after.
         fig, ax = plt.subplots(nrows=3, ncols=1, figsize=(10, 14))
         ax1, ax2, ax3 = ax
-        ax1.plot(train_n_traj, train_losses, color="b", label="Train loss")
-        ax1.plot(val_n_traj, val_losses, color="g", label="Val loss")
+        ax1.plot(val_n_traj, val_losses, color="b", label="Val loss")
         ax1.set_ylim([0, None])
-        ax2.semilogy(train_n_traj, train_losses, color="b", label="Train loss")
         ax2.semilogy(val_n_traj, val_losses, color="g", label="Val loss")
         ax3.plot(val_n_traj, logZ_values, color="b", label="Log Z")
 
