@@ -8,16 +8,18 @@ import argparse
 from spingflow.modeling.utils import add_modeling_arguments_to_parser
 
 
-parser = argparse.ArgumentParser()
+parser = argparse.ArgumentParser(
+    add_help=True, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
 parser = add_modeling_arguments_to_parser(parser)
-parser.add_argument("--output_name", default="results_dict.pkl")
+parser.add_argument("--property", default="magn", help="Property to predict")
+parser.add_argument("--output_name", default="results_dict.pkl", help="Output name")
 args = parser.parse_args()
 
 # Parameters
 params = {
     "nsamples": 50000,
     "batch_size": 1000,
-    "property": "magn",
     "device": "cpu",
 }
 
@@ -25,14 +27,18 @@ inference_script_path = "/home/olimt/projects/rrg-cotemich-ac/olimt/Gflow/gflown
 base_inference_command = f"python {inference_script_path}"
 
 for k, v in vars(args).items():
-    if k != "output_name":
-        base_inference_command += f" --{k} {v}"
+    if isinstance(v, bool):
+        if v:
+            base_inference_command += f" --{k}"
+    else:
+        if k != "output_name":
+            base_inference_command += f" --{k} {v}"
 
 for k, v in params.items():
     base_inference_command += f" --{k} {v}"
 
 
-all_models = [f for f in os.listdir() if f.endswith(".pth")]
+all_models = [f for f in os.listdir() if f.endswith(".pth") or f.endswith(".torch")]
 temperatures = sorted(set([int(model.split("_")[1]) for model in all_models]))
 
 results_dict = {}

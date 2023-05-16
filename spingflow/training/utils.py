@@ -17,7 +17,11 @@ def create_train_parser():
         type=float,
         help="Temperature to train the model on",
     )
-    parser.add_argument("--max_traj", type=int, help="Maximum number of trajectories")
+    parser.add_argument(
+        "--max_traj",
+        type=lambda x: int(float(x)),
+        help="Maximum number of trajectories",
+    )
     parser.add_argument("--batch_size", type=int, help="Training batch size")
     parser.add_argument(
         "--val_interval", type=int, help="Number of batches in between validation steps"
