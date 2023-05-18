@@ -14,14 +14,18 @@ def main(args):
     model = setup_model_from_args(args)
     model.load_state_dict(torch.load(args.savepath, map_location=device))
 
-    predictor = SpinGFlowPredictor(
-        model=model,
-        nsamples=args.nsamples,
-        batch_size=args.batch_size,
-        device=device,
-    )
-    prediction = predictor.predict(args.property).item()
-    print(prediction)
+    if args.property == "logZ":
+        print(model.flow_model.logZ.item())
+
+    else:
+        predictor = SpinGFlowPredictor(
+            model=model,
+            nsamples=args.nsamples,
+            batch_size=args.batch_size,
+            device=device,
+        )
+        prediction = predictor.predict(args.property).item()
+        print(prediction)
 
 
 if __name__ == "__main__":

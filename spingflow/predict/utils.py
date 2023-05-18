@@ -21,7 +21,7 @@ def create_inference_parser():
     )
     parser.add_argument(
         "--property",
-        choices=["magn"],
+        choices=["magn", "logZ"],
         help="Property to predict over the sampled structures",
     )
     parser.add_argument(
