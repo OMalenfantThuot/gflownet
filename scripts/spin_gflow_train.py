@@ -1,7 +1,7 @@
-from spingflow.training.utils import create_train_parser
+import torch
+from spingflow.training.utils import create_train_parser, create_summary_writer
 from spingflow.modeling import setup_model_from_args
 from spingflow.training.trainer import SpinGFlowTrainer
-import torch
 
 
 def main(args):
@@ -36,6 +36,7 @@ def main(args):
         patience=args.patience,
         min_lr=3 * 10 ** (-6),
     )
+    logger = create_summary_writer(args)
 
     # Create trainer from args
     trainer = SpinGFlowTrainer(
@@ -47,11 +48,13 @@ def main(args):
         val_batch_size=args.val_batch_size,
         optimizer=optimizer,
         scheduler=scheduler,
+        logger=logger,
         device=device,
     )
 
     # Training
     trainer.train()
+    trainer.log_hparams(args)
     print("Training complete!")
     print(f"Max memory allocated: {torch.cuda.max_memory_allocated()/(1024**3):.1f} GB")
 
