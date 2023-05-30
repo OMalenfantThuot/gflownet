@@ -6,16 +6,12 @@ import argparse
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument("min_temp", type=int)
-parser.add_argument("max_temp", type=int)
-parser.add_argument("--step", type=int, default=1)
+parser.add_argument("--savedir", default="inference")
 args = parser.parse_args()
 
-temps = range(args.min_temp, args.max_temp + 1, args.step)
+paramdirs = [folder for folder in os.listdir() if folder.startswith("T_")]
 
-paramdirs = [f"T_{i}" for i in temps]
-
-os.makedirs("inference", exist_ok=True)
+os.makedirs(args.savedir, exist_ok=True)
 final_model_name = "final_model.torch"
 
 for paramdir in paramdirs:

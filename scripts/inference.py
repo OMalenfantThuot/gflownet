@@ -18,8 +18,8 @@ args = parser.parse_args()
 
 # Parameters
 params = {
-    "nsamples": 50000,
-    "batch_size": 1000,
+    "nsamples": 10**6,
+    "batch_size": 50000,
     "device": "cpu",
 }
 
@@ -39,7 +39,8 @@ for k, v in params.items():
 
 
 all_models = [f for f in os.listdir() if f.endswith(".pth") or f.endswith(".torch")]
-temperatures = sorted(set([int(model.split("_")[1]) for model in all_models]))
+temperatures = sorted(set([float(model.split("_")[1]) for model in all_models]))
+temperatures = [int(t) if t % 1 == 0 else t for t in temperatures]
 
 results_dict = {}
 for temperature in temperatures:
