@@ -1,6 +1,6 @@
-import torch
-import numpy as np
 from spingflow.modeling.energy import IsingEnergyModel
+import numpy as np
+import torch
 
 
 class BaseFlowModel(torch.nn.Module):

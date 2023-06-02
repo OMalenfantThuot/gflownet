@@ -1,55 +1,45 @@
-import torch
-from spingflow.training.utils import create_train_parser, create_summary_writer
 from spingflow.modeling import setup_model_from_args
+from spingflow.training.logging import create_summary_writer
+from spingflow.training.optimizing import (
+    setup_optimizer_from_args,
+    setup_scheduler_from_args,
+)
 from spingflow.training.trainer import SpinGFlowTrainer
+from spingflow.training.utils import create_train_parser, create_hparams_dict_from_args
+import torch
 
 
 def main(args):
+    hparams = create_hparams_dict_from_args(args)
+
     # Get training device
     if args.device == "cuda":
         assert torch.cuda.is_available(), "CUDA was asked, but is not available"
-        device = torch.device(args.device)
-    elif args.device == "cpu":
-        device = torch.device(args.device)
+    device = torch.device(args.device)
 
     # Setup model for training
-    model = setup_model_from_args(args)
+    model = setup_model_from_args(hparams)
 
     # Setup optimizer and scheduler
-    optimizer = torch.optim.Adam(
-        [
-            {
-                "params": list(
-                    p[1]
-                    for p in filter(
-                        lambda p: p[0] != "flow_model.logZ", model.named_parameters()
-                    )
-                ),
-                "lr": args.lr,
-            },
-            {"params": model.flow_model.logZ, "lr": args.lr * args.logZ_lr_factor},
-        ]
-    )
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer,
-        factor=args.factor,
-        patience=args.patience,
-        min_lr=3 * 10 ** (-6),
-    )
-    logger = create_summary_writer(args)
+    optimizer = setup_optimizer_from_args(hparams, model)
+    scheduler = setup_scheduler_from_args(hparams, optimizer)
+    logger = create_summary_writer(args, hparams)
 
     # Create trainer from args
-    trainer = SpinGFlowTrainer(
-        model=model,
-        temperature=args.temperature,
-        max_traj=args.max_traj,
-        batch_size=args.batch_size,
-        val_interval=args.val_interval,
-        val_batch_size=args.val_batch_size,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        logger=logger,
-        device=device,
+    # trainer = SpinGFlowTrainer(
+    #    model=model,
+    #    temperature=args.temperature,
+    #    max_traj=args.max_traj,
+    #    batch_size=args.batch_size,
+    #    val_interval=args.val_interval,
+    #    val_batch_size=args.val_batch_size,
+    #    optimizer=optimizer,
+    #    scheduler=scheduler,
+    #    logger=logger,
+    #    device=device,
+    # )
+    trainer = SpinGFlowTrainer.create_from_elements(
+        hparams, model, optimizer, scheduler, logger, device
     )
 
     # Training

@@ -1,13 +1,12 @@
-import torch
-from typing import Union
 from spingflow.spins import create_J_matrix
+from typing import Union
+import torch
 
 
 class IsingEnergyModel(torch.nn.Module):
-    def __init__(self, N: int, J: Union[int, torch.Tensor], device: str = "cpu"):
+    def __init__(self, N: int, J: Union[int, torch.Tensor]):
         super().__init__()
         self.N = int(N)
-        self.device = device
         self.J = J
 
     @property
@@ -17,9 +16,11 @@ class IsingEnergyModel(torch.nn.Module):
     @J.setter
     def J(self, J):
         if type(J) is float:
-            self._J = create_J_matrix(self.N, sigma=J).to(self.device)
+            _J = create_J_matrix(self.N, sigma=J)
+            self.register_buffer("_J", _J)
         elif type(J) is torch.Tensor:
-            self._J = J.to(self.device)
+            _J = J
+            self.register_buffer("_J", _J)
         else:
             raise RuntimeError(
                 "The J input should be a float or the matrix as a tensor."

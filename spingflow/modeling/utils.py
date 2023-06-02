@@ -1,5 +1,6 @@
 from spingflow.modeling.base import BaseFlowModel, IsingFullGFlowModel
 from spingflow.modeling.energy import IsingEnergyModel
+import torch
 
 
 def setup_model_from_args(args):
@@ -32,7 +33,7 @@ def setup_flow_model_from_args(args):
 
 
 def setup_reward_model_from_args(args):
-    return IsingEnergyModel(N=args.N, J=args.J, device=args.device)
+    return IsingEnergyModel(N=args.N, J=args.J)
 
 
 def add_modeling_arguments_to_parser(parser):

@@ -11,6 +11,7 @@ class SpinGFlowTrainer:
     def __init__(
         self,
         model: IsingFullGFlowModel,
+        policy: str,
         temperature: float,
         max_traj: int,
         batch_size: int,
@@ -24,6 +25,7 @@ class SpinGFlowTrainer:
         kept_checkpoints: int = 3,
     ):
         self.model = model
+        self.policy = policy
         self.temperature = temperature
         self.max_traj = max_traj
         self.batch_size = batch_size
@@ -43,7 +45,6 @@ class SpinGFlowTrainer:
         # Set initial values
         n_traj, n_batches = 0, 0
         logZ_values = []
-        # val_n_traj, val_losses = [], []
         val_counter, checkpoint_counter, plotting_counter = 0, 1, 0
         logZ_converged = False
 
@@ -52,27 +53,9 @@ class SpinGFlowTrainer:
             # Check for validation
             if n_batches % self.val_interval == 0:
                 # Validation trajectories
-                _, val_loss = self.validation_step()
+                _, val_loss, logZ = self.validation_step()
 
-                # Save values
-                lr = self.optimizer.param_groups[0]["lr"]
-                logZ_lr = self.optimizer.param_groups[1]["lr"]
-
-                self.logger.add_scalar("val/loss", val_loss, n_traj)
-                self.logger.add_scalar(
-                    "logZ", self.model.flow_model.logZ.item(), n_traj
-                )
-                self.logger.add_scalars(
-                    "learning_rates", {"lr": lr, "logZ_lr": logZ_lr}, n_traj
-                )
-                self.logger.add_scalar("logZ_converged", logZ_converged, n_traj)
-
-                # Log values
-                print(f"--n_traj: {n_traj:.3g}")
-                print(
-                    f"---- Val loss: {val_loss:.4g} --- Model logZ: {self.model.flow_model.logZ.item():.4g}"
-                )
-                print(f"---- Learning rates: {lr:.4e} {logZ_lr:.4e}")
+                self.log_validation_values(n_traj, val_loss, logZ)
 
                 # Checkpoint if needed
                 val_counter, checkpoint_counter = self.checkpoint(
@@ -116,7 +99,8 @@ class SpinGFlowTrainer:
             self.device
         )
         state, loss = self.training_trajectory_and_metrics(batch)
-        return state, loss.item()
+        logZ = self.model.get_current_logZ()
+        return state, loss.item(), logZ
 
     def training_step(self):
         # Batched trajectories with gradient accumulation
@@ -126,6 +110,25 @@ class SpinGFlowTrainer:
         )
         state, loss = self.training_trajectory_and_metrics(batch)
         return state, loss
+
+    def log_validation_values(self, n_traj, val_loss):
+        # Save values
+        lr = self.optimizer.param_groups[0]["lr"]
+        logZ_lr = self.optimizer.param_groups[1]["lr"]
+
+        self.logger.add_scalar("val/loss", val_loss, n_traj)
+        self.logger.add_scalar("logZ", self.model.flow_model.logZ.item(), n_traj)
+        self.logger.add_scalars(
+            "learning_rates", {"lr": lr, "logZ_lr": logZ_lr}, n_traj
+        )
+        # self.logger.add_scalar("logZ_converged", logZ_converged, n_traj)
+
+        # Log values
+        print(f"--n_traj: {n_traj:.3g}")
+        print(
+            f"---- Val loss: {val_loss:.4g} --- Model logZ: {self.model.flow_model.logZ.item():.4g}"
+        )
+        print(f"---- Learning rates: {lr:.4e} {logZ_lr:.4e}")
 
     def training_trajectory_and_metrics(self, state):
         # Evaluate initial state (S_0)
@@ -180,7 +183,7 @@ class SpinGFlowTrainer:
             val_counter += 1
         return val_counter, checkpoint_counter
 
-    def calculate_final_metrics(self, logZ_converged):
+    def calculate_and_log_final_metrics(self, logZ_converged):
         val_losses = []
         for _ in range(int(np.ceil(10**6 // self.val_batch_size))):
             val_losses.append(self.validation_step()[1])
@@ -193,23 +196,40 @@ class SpinGFlowTrainer:
             "logZ/converged": logZ_converged,
         }
 
-    def log_hparams(self, args):
-        hparams_dict = {
-            "N": args.N,
-            "J": args.J,
-            "temperature": args.temperature,
-            "max_traj": args.max_traj,
-            "batch_size": args.batch_size,
-            "lr": args.lr,
-            "logZ_lr_factor": args.logZ_lr_factor,
-            "weight_decay": args.weight_decay,
-            "patience": args.patience,
-            "factor": args.factor,
-            "model_type": args.model_type,
-            "n_layers": args.n_layers,
-            "n_hidden": args.n_hidden,
-            "conv_n_layers": args.conv_n_layers,
-            "conv_norm": args.conv_norm,
-            "mlp_norm": args.mlp_norm,
-        }
-        self.logger.add_hparams(hparams_dict, self.final_metrics)
+    # def log_hparams(self, args):
+    #    hparams_dict = {
+    #        "N": args.N,
+    #        "J": args.J,
+    #        "temperature": args.temperature,
+    #        "max_traj": args.max_traj,
+    #        "batch_size": args.batch_size,
+    #        "lr": args.lr,
+    #        "logZ_lr_factor": args.logZ_lr_factor,
+    #        "weight_decay": args.weight_decay,
+    #        "patience": args.patience,
+    #        "factor": args.factor,
+    #        "model_type": args.model_type,
+    #        "n_layers": args.n_layers,
+    #        "n_hidden": args.n_hidden,
+    #        "conv_n_layers": args.conv_n_layers,
+    #        "conv_norm": args.conv_norm,
+    #        "mlp_norm": args.mlp_norm,
+    #    }
+    #    self.logger.add_hparams(hparams_dict, self.final_metrics)
+
+    @classmethod
+    def create_from_elements(cls, hparams, model, optimizer, scheduler, logger, device):
+        trainer = SpinGFlowTrainer(
+            model=model,
+            policy=hparams.policy,
+            temperature=hparams.temperature,
+            max_traj=hparams.max_traj,
+            batch_size=hparams.batch_size,
+            val_interval=hparams.val_interval,
+            val_batch_size=hparams.val_batch_size,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            logger=logger,
+            device=device,
+        )
+        return trainer

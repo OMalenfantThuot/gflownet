@@ -1,8 +1,5 @@
-import argparse
-import os
-import torch
-from torch.utils.tensorboard import SummaryWriter
 from spingflow.modeling.utils import add_modeling_arguments_to_parser
+import argparse
 
 
 def create_train_parser():
@@ -14,6 +11,9 @@ def create_train_parser():
     parser = add_modeling_arguments_to_parser(parser)
 
     # Add training related arguments
+    parser.add_argument(
+        "--policy", choices=["tb", "db", "subtb"], help="Training policy"
+    )
     parser.add_argument(
         "--temperature",
         type=float,
@@ -34,7 +34,7 @@ def create_train_parser():
         "--logZ_lr_factor",
         type=float,
         default=100,
-        help="Multiplicative factor to get the ",
+        help="Multiplicative factor to get the logZ learning rate",
     )
     parser.add_argument(
         "--weight_decay", type=float, default=0, help="Weight decay parameter"
@@ -51,19 +51,37 @@ def create_train_parser():
     return parser
 
 
-def create_summary_writer(args):
-    if args.run_name:
-        base_log_dir = os.path.join(args.log_dir, args.run_name)
-    else:
-        base_log_dir = os.path.join(args.log_dir, f"N{args.N}_T{args.temperature}")
-
-    log_dir_counter = 0
-    while True:
-        test_log_dir = base_log_dir + f"_{log_dir_counter:04}"
-        if os.path.exists(test_log_dir):
-            log_dir_counter += 1
+class HparamsDict(dict):
+    def __getattr__(self, name):
+        if name in self:
+            return self[name]
         else:
-            break
+            raise AttributeError("No such attribute: " + name)
 
-    writer = SummaryWriter(log_dir=test_log_dir)
-    return writer
+    def __setattr__(self, name, value):
+        self[name] = value
+
+
+def create_hparams_dict_from_args(args):
+    hparams_dict = {
+        "N": args.N,
+        "J": args.J,
+        "temperature": args.temperature,
+        "policy": args.policy,
+        "max_traj": args.max_traj,
+        "batch_size": args.batch_size,
+        "lr": args.lr,
+        "logZ_lr_factor": args.logZ_lr_factor,
+        "weight_decay": args.weight_decay,
+        "patience": args.patience,
+        "factor": args.factor,
+        "model_type": args.model_type,
+        "n_layers": args.n_layers,
+        "n_hidden": args.n_hidden,
+        "conv_n_layers": args.conv_n_layers,
+        "conv_norm": args.conv_norm,
+        "mlp_norm": args.mlp_norm,
+        "val_interval": args.val_interval,
+        "val_batch_size": args.val_batch_size,
+    }
+    return HparamsDict(hparams_dict)
