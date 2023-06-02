@@ -38,11 +38,12 @@ class SpinConfiguration:
         energy = -self.values.flatten() @ J @ self.values.flatten()
         return energy
 
-    def mc_step(self, T, J, current_energy=None):
+    def mc_step(self, T, J, indices, current_energy=None):
         E0 = self.get_energy(J) if current_energy is None else current_energy
 
-        # Choose random spin and flip it
-        idx0, idx1 = torch.randint(self.N, (1,)), torch.randint(self.N, (1,))
+        # Flip the chosen spin as a test configuration
+        # idx0, idx1 = torch.randint(self.N, (1,)), torch.randint(self.N, (1,))
+        idx0, idx1 = indices
         self.values[idx0, idx1] *= -1
 
         # Get energy of new state
@@ -62,9 +63,26 @@ class SpinConfiguration:
                 self.values[idx0, idx1] *= -1
                 return E0
 
-    def thermalize(self, J, T=5, nstep=10000):
-        for i in range(nstep):
-            self.energy = self.mc_step(T=T, J=J, current_energy=self.energy)
+    def thermalize(self, J, T, nstep=100):
+        # Do a loop on spins nstep times to hopefully reach convergence
+        for _ in range(nstep):
+            self.thermalize_epoch(J, T)
+
+    def thermalize_epoch(self, J, T):
+        # Go through every spin once in a random order
+        x_idx, y_idx = [
+            arr.flatten() for arr in np.meshgrid(np.arange(self.N), np.arange(self.N))
+        ]
+        to_try_idx = np.random.permutation(np.arange(x_idx.size))
+
+        # One Monte Carlo step per spin
+        for i in range(to_try_idx.size):
+            self.energy = self.mc_step(
+                T=T,
+                J=J,
+                indices=(x_idx[to_try_idx[i]], y_idx[to_try_idx[i]]),
+                current_energy=self.energy,
+            )
 
     def get_magnetization(self):
         mag = torch.mean(self.values)
