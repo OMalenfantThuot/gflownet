@@ -48,6 +48,12 @@ def create_train_parser():
         help="Top level directory for Tensorboard logs",
     )
     parser.add_argument("--run_name", default=None, help="Name of the run")
+    parser.add_argument(
+        "--initial_logZ",
+        type=float,
+        default=1.0,
+        help="For TB, initial value of the logZ parameter.",
+    )
     return parser
 
 
@@ -83,5 +89,6 @@ def create_hparams_dict_from_args(args):
         "mlp_norm": args.mlp_norm,
         "val_interval": args.val_interval,
         "val_batch_size": args.val_batch_size,
+        "initial_logZ": args.initial_logZ,
     }
     return HparamsDict(hparams_dict)

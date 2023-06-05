@@ -1,4 +1,3 @@
-from spingflow.modeling import BaseFlowModel
 import torch
 
 
@@ -16,18 +15,6 @@ def setup_mlp(input_dim, output_dim, n_layers, n_hidden, batch_norm=False):
         net.append(torch.nn.BatchNorm1d(n_hidden))
     net.append(torch.nn.Linear(n_hidden, output_dim))
     return net
-
-
-class SimpleIsingFlowModel(BaseFlowModel):
-    def __init__(self, N, n_layers=2, n_hidden=256):
-        N = int(N)
-        internal_net = setup_mlp(
-            input_dim=2 * N**2,
-            output_dim=2 * 2 * N**2,
-            n_layers=n_layers,
-            n_hidden=n_hidden,
-        )
-        super().__init__(N=N, internal_net=internal_net)
 
 
 class ConvolutionsModule(torch.nn.Module):
@@ -71,28 +58,3 @@ class ConvolutionsModule(torch.nn.Module):
 
         states = states.reshape(-1, self.output_dim)
         return states
-
-
-class ConvIsingFlowModel(BaseFlowModel):
-    def __init__(
-        self,
-        N,
-        conv_n_layers=3,
-        mlp_n_layers=2,
-        mlp_n_hidden=256,
-        conv_batch_norm=False,
-        mlp_batch_norm=False,
-    ):
-        N = int(N)
-        convolutions_module = ConvolutionsModule(
-            N=N, conv_n_layers=conv_n_layers, batch_norm=conv_batch_norm
-        )
-        mlp_module = setup_mlp(
-            input_dim=convolutions_module.output_dim,
-            output_dim=2 * 2 * N**2,
-            n_layers=mlp_n_layers,
-            n_hidden=mlp_n_hidden,
-            batch_norm=mlp_batch_norm,
-        )
-        internal_net = torch.nn.Sequential(convolutions_module, mlp_module)
-        super().__init__(N=N, internal_net=internal_net)
