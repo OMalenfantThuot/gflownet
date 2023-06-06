@@ -1,5 +1,6 @@
 from spingflow.modeling.tb_models import MlpTBFlowModel, ConvTBFlowModel
 from spingflow.modeling.energy import IsingEnergyModel
+from spingflow.modeling import IsingFullGFlowModel
 import torch
 
 

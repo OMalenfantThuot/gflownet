@@ -26,25 +26,13 @@ def main(args):
     logger = create_summary_writer(args, hparams)
 
     # Create trainer from args
-    # trainer = SpinGFlowTrainer(
-    #    model=model,
-    #    temperature=args.temperature,
-    #    max_traj=args.max_traj,
-    #    batch_size=args.batch_size,
-    #    val_interval=args.val_interval,
-    #    val_batch_size=args.val_batch_size,
-    #    optimizer=optimizer,
-    #    scheduler=scheduler,
-    #    logger=logger,
-    #    device=device,
-    # )
-    trainer = SpinGFlowTrainer.create_from_elements(
+    trainer = SpinGFlowTrainer.create_from_args(
         hparams, model, optimizer, scheduler, logger, device
     )
 
     # Training
     trainer.train()
-    trainer.log_hparams(args)
+    trainer.log_hparams(hparams)
     print("Training complete!")
     print(f"Max memory allocated: {torch.cuda.max_memory_allocated()/(1024**3):.1f} GB")
 

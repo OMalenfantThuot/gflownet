@@ -29,6 +29,9 @@ class BaseTBFlowModel(BaseFlowModel):
         PB = logits[..., 2 * self.N**2 :] * state + (1 - state) * -100
         return PF, PB, unavailable_actions
 
+    def get_current_logZ(self):
+        return self.logZ.item()
+
 
 class MlpTBFlowModel(BaseTBFlowModel):
     def __init__(

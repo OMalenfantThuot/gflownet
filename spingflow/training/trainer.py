@@ -54,8 +54,9 @@ class SpinGFlowTrainer:
             if n_batches % self.val_interval == 0:
                 # Validation trajectories
                 _, val_loss, logZ = self.validation_step()
+                val_dict = {"val/loss": val_loss, "logZ_converged": logZ_converged}
 
-                self.log_validation_values(n_traj, val_loss, logZ)
+                self.log_validation_values(n_traj, val_dict)
 
                 # Checkpoint if needed
                 val_counter, checkpoint_counter = self.checkpoint(
@@ -66,7 +67,7 @@ class SpinGFlowTrainer:
                 if logZ_converged:
                     self.scheduler.step(val_loss)
                 else:
-                    logZ_values.append(self.model.flow_model.logZ.item())
+                    logZ_values.append(self.model.get_current_logZ())
                     if len(logZ_values) > 50:
                         logZ_history = np.array(logZ_values[-50:])
                         max_diff = np.max(np.abs(logZ_history - logZ_history[-1]))
@@ -90,7 +91,7 @@ class SpinGFlowTrainer:
             self.checkpoint_interval, checkpoint_counter + 1, final=True
         )
         # self.plot_metrics(val_n_traj, val_losses, logZ_values)
-        self.calculate_final_metrics(logZ_converged)
+        self.calculate_final_metrics()
 
     def validation_step(self):
         # Batched trajectories without gradient accumulation
@@ -111,22 +112,22 @@ class SpinGFlowTrainer:
         state, loss = self.training_trajectory_and_metrics(batch)
         return state, loss
 
-    def log_validation_values(self, n_traj, val_loss):
+    def log_validation_values(self, n_traj, val_dict):
         # Save values
         lr = self.optimizer.param_groups[0]["lr"]
         logZ_lr = self.optimizer.param_groups[1]["lr"]
 
-        self.logger.add_scalar("val/loss", val_loss, n_traj)
-        self.logger.add_scalar("logZ", self.model.flow_model.logZ.item(), n_traj)
+        for k, v in val_dict.items():
+            self.logger.add_scalar(k, v, n_traj)
+        self.logger.add_scalar("logZ", self.model.get_current_logZ(), n_traj)
         self.logger.add_scalars(
             "learning_rates", {"lr": lr, "logZ_lr": logZ_lr}, n_traj
         )
-        # self.logger.add_scalar("logZ_converged", logZ_converged, n_traj)
 
-        # Log values
+        # print values (maybe no longer needed)
         print(f"--n_traj: {n_traj:.3g}")
         print(
-            f"---- Val loss: {val_loss:.4g} --- Model logZ: {self.model.flow_model.logZ.item():.4g}"
+            f"---- Val loss: {val_dict['val/loss']:.4g} --- Model logZ: {self.model.get_current_logZ():.4g}"
         )
         print(f"---- Learning rates: {lr:.4e} {logZ_lr:.4e}")
 
@@ -183,42 +184,23 @@ class SpinGFlowTrainer:
             val_counter += 1
         return val_counter, checkpoint_counter
 
-    def calculate_and_log_final_metrics(self, logZ_converged):
+    def calculate_final_metrics(self):
         val_losses = []
         for _ in range(int(np.ceil(10**6 // self.val_batch_size))):
             val_losses.append(self.validation_step()[1])
 
         final_val_loss = np.mean(val_losses)
-        logZ = self.model.flow_model.logZ.item()
+        logZ = self.model.get_current_logZ()
         self.final_metrics = {
             "final/val/loss": final_val_loss,
             "logZ": logZ,
-            "logZ/converged": logZ_converged,
         }
 
-    # def log_hparams(self, args):
-    #    hparams_dict = {
-    #        "N": args.N,
-    #        "J": args.J,
-    #        "temperature": args.temperature,
-    #        "max_traj": args.max_traj,
-    #        "batch_size": args.batch_size,
-    #        "lr": args.lr,
-    #        "logZ_lr_factor": args.logZ_lr_factor,
-    #        "weight_decay": args.weight_decay,
-    #        "patience": args.patience,
-    #        "factor": args.factor,
-    #        "model_type": args.model_type,
-    #        "n_layers": args.n_layers,
-    #        "n_hidden": args.n_hidden,
-    #        "conv_n_layers": args.conv_n_layers,
-    #        "conv_norm": args.conv_norm,
-    #        "mlp_norm": args.mlp_norm,
-    #    }
-    #    self.logger.add_hparams(hparams_dict, self.final_metrics)
+    def log_hparams(self, hparams):
+        self.logger.add_hparams(dict(hparams.items()), self.final_metrics)
 
     @classmethod
-    def create_from_elements(cls, hparams, model, optimizer, scheduler, logger, device):
+    def create_from_args(cls, hparams, model, optimizer, scheduler, logger, device):
         trainer = SpinGFlowTrainer(
             model=model,
             policy=hparams.policy,
