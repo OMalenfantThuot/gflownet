@@ -34,7 +34,9 @@ def main(args):
     trainer.train()
     trainer.log_hparams(hparams)
     print("Training complete!")
-    print(f"Max memory allocated: {torch.cuda.max_memory_allocated()/(1024**3):.1f} GB")
+    print(
+        f"Max GPU memory allocated: {torch.cuda.max_memory_allocated()/(1024**3):.1f} GB"
+    )
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
-import os
-import torch
+from spingflow.modeling import IsingFullGFlowModel
+from spingflow.training.policies import get_policy
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from spingflow.modeling import IsingFullGFlowModel
+import numpy as np
+import os
+import torch
 
 
 class SpinGFlowTrainer:
@@ -25,7 +25,7 @@ class SpinGFlowTrainer:
         kept_checkpoints: int = 3,
     ):
         self.model = model
-        self.policy = policy
+        self.policy = get_policy(policy, self.model)
         self.temperature = temperature
         self.max_traj = max_traj
         self.batch_size = batch_size
@@ -99,7 +99,9 @@ class SpinGFlowTrainer:
         batch = self.model.create_input_batch(batch_size=self.val_batch_size).to(
             self.device
         )
-        state, loss = self.training_trajectory_and_metrics(batch)
+        state, loss = self.policy.training_trajectory_and_metrics(
+            batch, self.temperature
+        )
         logZ = self.model.get_current_logZ()
         return state, loss.item(), logZ
 
@@ -109,7 +111,9 @@ class SpinGFlowTrainer:
         batch = self.model.create_input_batch(batch_size=self.batch_size).to(
             self.device
         )
-        state, loss = self.training_trajectory_and_metrics(batch)
+        state, loss = self.policy.training_trajectory_and_metrics(
+            batch, self.temperature
+        )
         return state, loss
 
     def log_validation_values(self, n_traj, val_dict):
@@ -130,40 +134,6 @@ class SpinGFlowTrainer:
             f"---- Val loss: {val_dict['val/loss']:.4g} --- Model logZ: {self.model.get_current_logZ():.4g}"
         )
         print(f"---- Learning rates: {lr:.4e} {logZ_lr:.4e}")
-
-    def training_trajectory_and_metrics(self, state):
-        # Evaluate initial state (S_0)
-        PF, PB, _ = self.model.flow_model.get_logits(state)
-        traj_PF, traj_PB = 0, 0
-
-        # Loop on following decisions
-        for step in range(1, self.model.N**2 + 1):
-            # Use forward probabilities and make choice
-            categorical = Categorical(logits=PF)
-            choice = categorical.sample()
-            new_state = self.model.flow_model.create_new_state_from_choice(
-                state, choice
-            )
-            traj_PF += categorical.log_prob(choice)
-
-            # Check if we are at terminal state
-            if step == self.model.N**2:
-                # Calculate reward
-                logreward = self.model.reward_model.get_logreward(
-                    new_state, self.temperature
-                )
-
-            # Get forward and backward probabilities for new state
-            PF, PB, _ = self.model.flow_model.get_logits(new_state)
-            traj_PB += Categorical(logits=PB).log_prob(choice)
-
-            # Reset for next loop
-            state = new_state
-
-        # Trajectory balance loss function
-        loss = (self.model.flow_model.logZ + traj_PF - traj_PB - logreward) ** 2
-
-        return state, loss.mean()
 
     def checkpoint(self, val_counter, checkpoint_counter, final=False):
         # Check if checkpoint is needed
