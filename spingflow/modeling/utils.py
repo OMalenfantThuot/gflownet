@@ -16,7 +16,10 @@ def setup_flow_model_from_args(args):
             from spingflow.modeling.tb_models import MlpTBFlowModel
 
             return MlpTBFlowModel(
-                N=args.N, n_layers=args.n_layers, n_hidden=args.n_hidden, logZ=args.initial_logZ
+                N=args.N,
+                n_layers=args.n_layers,
+                n_hidden=args.n_hidden,
+                logZ=args.initial_logZ,
             )
         elif args.model_type == "conv":
             from spingflow.modeling.tb_models import ConvTBFlowModel
@@ -49,6 +52,9 @@ def add_modeling_arguments_to_parser(parser):
         "--J", type=float, default=1, help="Ising interaction parameter."
     )
     parser.add_argument(
+        "--policy", choices=["tb", "db", "subtb"], help="Training policy"
+    )
+    parser.add_argument(
         "--model_type", choices=["mlp", "conv"], help="Name of the model type to use"
     )
     parser.add_argument(
@@ -69,5 +75,11 @@ def add_modeling_arguments_to_parser(parser):
         "--mlp_norm",
         action="store_true",
         help="Whether to use batch norm in the mlp layers",
+    )
+    parser.add_argument(
+        "--initial_logZ",
+        type=float,
+        default=1.0,
+        help="For TB, initial value of the logZ parameter.",
     )
     return parser

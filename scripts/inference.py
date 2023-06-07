@@ -14,13 +14,15 @@ parser = argparse.ArgumentParser(
 parser = add_modeling_arguments_to_parser(parser)
 parser.add_argument("--property", default="magn", help="Property to predict")
 parser.add_argument("--output_name", default="results_dict.pkl", help="Output name")
+parser.add_argument(
+    "--device", choices=["cpu", "cuda"], help="Inference device", default="cpu"
+)
 args = parser.parse_args()
 
 # Parameters
 params = {
     "nsamples": 10**6,
     "batch_size": 50000,
-    "device": "cpu",
 }
 
 inference_script_path = "/home/olimt/projects/rrg-cotemich-ac/olimt/Gflow/gflownet/scripts/spin_gflow_run.py"

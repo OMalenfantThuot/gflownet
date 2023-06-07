@@ -12,9 +12,6 @@ def create_train_parser():
 
     # Add training related arguments
     parser.add_argument(
-        "--policy", choices=["tb", "db", "subtb"], help="Training policy"
-    )
-    parser.add_argument(
         "--temperature",
         type=float,
         help="Temperature to train the model on",
@@ -48,12 +45,6 @@ def create_train_parser():
         help="Top level directory for Tensorboard logs",
     )
     parser.add_argument("--run_name", default=None, help="Name of the run")
-    parser.add_argument(
-        "--initial_logZ",
-        type=float,
-        default=1.0,
-        help="For TB, initial value of the logZ parameter.",
-    )
     return parser
 
 
@@ -69,26 +60,30 @@ class HparamsDict(dict):
 
 
 def create_hparams_dict_from_args(args):
-    hparams_dict = {
-        "N": args.N,
-        "J": args.J,
-        "temperature": args.temperature,
-        "policy": args.policy,
-        "max_traj": args.max_traj,
-        "batch_size": args.batch_size,
-        "lr": args.lr,
-        "logZ_lr_factor": args.logZ_lr_factor,
-        "weight_decay": args.weight_decay,
-        "patience": args.patience,
-        "factor": args.factor,
-        "model_type": args.model_type,
-        "n_layers": args.n_layers,
-        "n_hidden": args.n_hidden,
-        "conv_n_layers": args.conv_n_layers,
-        "conv_norm": args.conv_norm,
-        "mlp_norm": args.mlp_norm,
-        "val_interval": args.val_interval,
-        "val_batch_size": args.val_batch_size,
-        "initial_logZ": args.initial_logZ,
-    }
+    hparams_dict = {}
+    valid_hparams = (
+        "N",
+        "J",
+        "temperature",
+        "policy",
+        "max_traj",
+        "batch_size",
+        "lr",
+        "logZ_lr_factor",
+        "weight_decay",
+        "patience",
+        "factor",
+        "model_type",
+        "n_layers",
+        "n_hidden",
+        "conv_n_layers",
+        "conv_norm",
+        "mlp_norm",
+        "val_interval",
+        "val_batch_size",
+        "initial_logZ",
+    )
+    for key, value in vars(args).items():
+        if key in valid_hparams:
+            hparams_dict[key] = value
     return HparamsDict(hparams_dict)
