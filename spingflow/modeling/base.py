@@ -59,3 +59,6 @@ class IsingFullGFlowModel(torch.nn.Module):
 
     def get_current_logZ(self):
         return self.flow_model.get_current_logZ()
+
+    def get_logreward(self, state, temperature):
+        return self.reward_model.get_logreward(state, temperature)

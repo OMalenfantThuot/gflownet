@@ -17,6 +17,12 @@ def create_train_parser():
         help="Temperature to train the model on",
     )
     parser.add_argument(
+        "--epsilon",
+        type=float,
+        default=0.0,
+        help="Epsilon value for the greedy training",
+    )
+    parser.add_argument(
         "--max_traj",
         type=lambda x: int(float(x)),
         help="Maximum number of trajectories",
@@ -82,6 +88,7 @@ def create_hparams_dict_from_args(args):
         "val_interval",
         "val_batch_size",
         "initial_logZ",
+        "epsilon",
     )
     for key, value in vars(args).items():
         if key in valid_hparams:

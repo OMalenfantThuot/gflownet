@@ -30,7 +30,7 @@ class BaseTBFlowModel(BaseFlowModel):
         return PF, PB, unavailable_actions
 
     def get_current_logZ(self):
-        return self.logZ.item()
+        return self.logZ
 
 
 class MlpTBFlowModel(BaseTBFlowModel):

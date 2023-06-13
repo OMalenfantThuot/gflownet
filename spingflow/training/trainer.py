@@ -1,7 +1,7 @@
 from spingflow.modeling import IsingFullGFlowModel
 from spingflow.training.policies import get_policy
-from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
+from typing import Optional
 import numpy as np
 import os
 import torch
@@ -20,9 +20,10 @@ class SpinGFlowTrainer:
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.ReduceLROnPlateau,
         logger: SummaryWriter,
-        device: torch.device = torch.device("cpu"),
-        checkpoint_interval: int = 50,
-        kept_checkpoints: int = 3,
+        epsilon: Optional[float] = 0.0,
+        device: Optional[torch.device] = torch.device("cpu"),
+        checkpoint_interval: Optional[int] = 50,
+        kept_checkpoints: Optional[int] = 3,
     ):
         self.model = model
         self.policy = get_policy(policy, self.model)
@@ -34,6 +35,7 @@ class SpinGFlowTrainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.logger = logger
+        self.epsilon = epsilon
         self.device = device
         self.checkpoint_interval = checkpoint_interval
         self.kept_checkpoints = kept_checkpoints
@@ -56,7 +58,7 @@ class SpinGFlowTrainer:
                 _, val_loss, logZ = self.validation_step()
                 val_dict = {"val/loss": val_loss, "logZ_converged": logZ_converged}
 
-                self.log_validation_values(n_traj, val_dict)
+                self.log_validation_values(n_traj, val_dict, logZ)
 
                 # Checkpoint if needed
                 val_counter, checkpoint_counter = self.checkpoint(
@@ -67,7 +69,7 @@ class SpinGFlowTrainer:
                 if logZ_converged:
                     self.scheduler.step(val_loss)
                 else:
-                    logZ_values.append(self.model.get_current_logZ())
+                    logZ_values.append(logZ)
                     if len(logZ_values) > 50:
                         logZ_history = np.array(logZ_values[-50:])
                         max_diff = np.max(np.abs(logZ_history - logZ_history[-1]))
@@ -90,7 +92,6 @@ class SpinGFlowTrainer:
         _ = self.checkpoint(
             self.checkpoint_interval, checkpoint_counter + 1, final=True
         )
-        # self.plot_metrics(val_n_traj, val_losses, logZ_values)
         self.calculate_final_metrics()
 
     def validation_step(self):
@@ -100,9 +101,9 @@ class SpinGFlowTrainer:
             self.device
         )
         state, loss = self.policy.training_trajectory_and_metrics(
-            batch, self.temperature
+            batch, self.temperature, self.epsilon
         )
-        logZ = self.model.get_current_logZ()
+        logZ = self.model.get_current_logZ().item()
         return state, loss.item(), logZ
 
     def training_step(self):
@@ -112,27 +113,25 @@ class SpinGFlowTrainer:
             self.device
         )
         state, loss = self.policy.training_trajectory_and_metrics(
-            batch, self.temperature
+            batch, self.temperature, self.epsilon
         )
         return state, loss
 
-    def log_validation_values(self, n_traj, val_dict):
+    def log_validation_values(self, n_traj, val_dict, logZ):
         # Save values
         lr = self.optimizer.param_groups[0]["lr"]
         logZ_lr = self.optimizer.param_groups[1]["lr"]
 
         for k, v in val_dict.items():
             self.logger.add_scalar(k, v, n_traj)
-        self.logger.add_scalar("logZ", self.model.get_current_logZ(), n_traj)
+        self.logger.add_scalar("logZ", logZ, n_traj)
         self.logger.add_scalars(
             "learning_rates", {"lr": lr, "logZ_lr": logZ_lr}, n_traj
         )
 
         # print values (maybe no longer needed)
         print(f"--n_traj: {n_traj:.3g}")
-        print(
-            f"---- Val loss: {val_dict['val/loss']:.4g} --- Model logZ: {self.model.get_current_logZ():.4g}"
-        )
+        print(f"---- Val loss: {val_dict['val/loss']:.4g} --- Model logZ: {logZ:.4g}")
         print(f"---- Learning rates: {lr:.4e} {logZ_lr:.4e}")
 
     def checkpoint(self, val_counter, checkpoint_counter, final=False):
@@ -160,7 +159,7 @@ class SpinGFlowTrainer:
             val_losses.append(self.validation_step()[1])
 
         final_val_loss = np.mean(val_losses)
-        logZ = self.model.get_current_logZ()
+        logZ = self.model.get_current_logZ().item()
         self.final_metrics = {
             "final/val/loss": final_val_loss,
             "logZ": logZ,
