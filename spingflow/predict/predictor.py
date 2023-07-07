@@ -45,11 +45,4 @@ class SpinGFlowPredictor:
         return prediction
 
     def choose_trajectories(self, state):
-        PF, _, _ = self.model.flow_model.get_logits(state)
-
-        for step in range(1, self.model.N**2 + 1):
-            categorical = Categorical(logits=PF)
-            choice = categorical.sample()
-            state = self.model.flow_model.create_new_state_from_choice(state, choice)
-            PF, PB, _ = self.model.flow_model.get_logits(state)
-        return state
+        return self.model.flow_model(state)

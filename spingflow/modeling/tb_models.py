@@ -12,8 +12,8 @@ class BaseTBFlowModel(BaseFlowModel):
         self.logZ = torch.nn.Parameter(torch.ones(1) * logZ)
 
     def make_forward_choice(self, state):
-        PF, _ = self.get_logits(state)
-        action_choice = torch.distributions.categorical.Categorical(probs=PF).sample()
+        PF, _, _ = self.get_logits(state)
+        action_choice = torch.distributions.categorical.Categorical(logits=PF).sample()
         new_state = self.create_new_state_from_choice(state, action_choice)
         return new_state
 

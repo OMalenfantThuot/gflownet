@@ -25,6 +25,13 @@ class BaseFlowModel(torch.nn.Module):
         new_state = state + base
         return new_state
 
+    def create_input_batch(self, batch_size):
+        return torch.zeros(
+            (batch_size, 2 * (self.N**2)),
+            dtype=torch.float32,
+            requires_grad=True,
+        )
+
     def make_forward_choice(self, state):
         raise NotImplementedError()
 
@@ -51,11 +58,7 @@ class IsingFullGFlowModel(torch.nn.Module):
         return final_state, reward
 
     def create_input_batch(self, batch_size):
-        return torch.zeros(
-            (batch_size, 2 * (self.flow_model.N**2)),
-            dtype=torch.float32,
-            requires_grad=True,
-        )
+        return self.flow_model.create_input_batch(batch_size)
 
     def get_current_logZ(self):
         return self.flow_model.get_current_logZ()
