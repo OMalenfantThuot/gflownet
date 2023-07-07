@@ -1,4 +1,5 @@
 from spingflow.modeling.tb_models import BaseTBFlowModel
+from spingflow.modeling.db_models import BaseDBFlowModel
 from spingflow.training.policies.utils import get_policy
 from torch.distributions.categorical import Categorical
 import torch
@@ -22,6 +23,8 @@ class BasePolicy:
     def check_model_is_consistent_with_policy(policy, model):
         if policy == "tb":
             assert isinstance(model.flow_model, BaseTBFlowModel)
+        elif policy == "db":
+            assert isinstance(model.flow_model, BaseDBFlowModel)
         else:
             raise NotImplementedError()
 

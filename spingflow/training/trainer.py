@@ -73,7 +73,7 @@ class SpinGFlowTrainer:
                     if len(logZ_values) > 50:
                         logZ_history = np.array(logZ_values[-50:])
                         max_diff = np.max(np.abs(logZ_history - logZ_history[-1]))
-                        if max_diff / logZ_history[-1] < 0.005:
+                        if max_diff / logZ_history[-1] < 0.002:
                             logZ_converged = True
                         logZ_values = logZ_values[-50:]
 

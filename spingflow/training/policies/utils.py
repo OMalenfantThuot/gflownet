@@ -8,5 +8,9 @@ def get_policy(policy: str, model: IsingFullGFlowModel):
         )
 
         return TrajectoryBalancePolicy(model)
+    elif policy == "db":
+        from spingflow.training.policies.detailed_balance import DetailedBalancePolicy
+
+        return DetailedBalancePolicy(model)
     else:
         raise NotImplementedError()

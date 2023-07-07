@@ -38,6 +38,31 @@ def setup_flow_model_from_args(args):
             raise NotImplementedError(
                 f"Model type {args.model_type} is not implemented for the policy {args.policy}."
             )
+    elif args.policy == "db":
+        if args.model_type == "mlp":
+            from spingflow.modeling.db_models import MlpDBFlowModel
+
+            return MlpDBFlowModel(
+                N=args.N,
+                n_layers=args.n_layers,
+                n_hidden=args.n_hidden,
+            )
+        elif args.model_type == "conv":
+            from spingflow.modeling.tb_models import ConvDBFlowModel
+
+            conv_n_layers = args.conv_n_layers if args.conv_n_layers else args.n_layers
+            return ConvDBFlowModel(
+                N=args.N,
+                conv_n_layers=conv_n_layers,
+                mlp_n_layers=args.n_layers,
+                mlp_n_hidden=args.n_hidden,
+                conv_batch_norm=args.conv_norm,
+                mlp_batch_norm=args.mlp_norm,
+            )
+        else:
+            raise NotImplementedError(
+                f"Model type {args.model_type} is not implemented for the policy {args.policy}."
+            )
     else:
         raise NotImplementedError(f"Policy {args.policy} is not implemented.")
 
